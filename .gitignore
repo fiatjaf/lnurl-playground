@@ -1,0 +1,7 @@
+static/bundle.*
+node_modules
+*.swo
+*.swp
+*.env
+lnurl-playground
+bindata.go
