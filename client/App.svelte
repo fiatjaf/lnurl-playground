@@ -84,14 +84,6 @@ onMount(async () => {
             <th>k1</th>
             <td><code>{withdraw.k1}</code></td>
           </tr>
-          <tr>
-            <th>sig</th>
-            <td><code>{withdraw.sig}</code></td>
-          </tr>
-          <tr>
-            <th>(is signature valid?)</th>
-            <td>{withdraw.valid}</td>
-          </tr>
         </table>
       {/if}
     </div>

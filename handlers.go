@@ -30,22 +30,13 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-withdraw/callback/", func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 		session := parts[len(parts)-1]
-		pubkey := userKeys[session]
 
 		k1 := r.URL.Query().Get("k1")
-		sig := r.URL.Query().Get("sig")
 		pr := r.URL.Query().Get("pr")
-
-		valid := "yes"
-		if ok, err := lnurl.VerifySignature(k1, sig, pubkey); !ok || err != nil {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("Invalid signature!"))
-			valid = "no"
-		} else {
-			json.NewEncoder(w).Encode(lnurl.OkResponse())
-		}
+		json.NewEncoder(w).Encode(lnurl.OkResponse())
 
 		if es, ok := userStreams[session]; ok {
-			es.SendEventMessage(`{"invoice": "`+pr+`","k1":"`+k1+`","sig":"`+sig+`","valid":"`+valid+`"}`, "withdraw", "")
+			es.SendEventMessage(`{"invoice": "`+pr+`","k1":"`+k1+`"}`, "withdraw", "")
 		}
 	})
 
