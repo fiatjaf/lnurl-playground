@@ -153,11 +153,6 @@ func setupHandlers() {
 			return
 		}
 
-		if msat < 444000 || msat > 4700123 {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("msat out of bounds"))
-			return
-		}
-
 		fakeinvoice := makeFakeInvoice(msat)
 
 		json.NewEncoder(w).Encode(lnurl.LNURLPayResponse2{
