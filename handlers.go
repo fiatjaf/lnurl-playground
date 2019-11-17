@@ -99,12 +99,14 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-withdraw", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
+		min, max := generateMinMax()
+
 		json.NewEncoder(w).Encode(lnurl.LNURLWithdrawResponse{
 			LNURLResponse:      lnurl.LNURLResponse{Status: "OK"},
 			Callback:           fmt.Sprintf("%s/lnurl-withdraw/callback/%s", s.ServiceURL, session),
 			K1:                 lnurl.RandomK1(), // use a new k1 here just because we can
-			MaxWithdrawable:    4700123,
-			MinWithdrawable:    444000,
+			MinWithdrawable:    min,
+			MaxWithdrawable:    max,
 			DefaultDescription: "sample withdraw",
 			Tag:                "withdrawRequest",
 		})
@@ -126,11 +128,13 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-pay", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
+		min, max := generateMinMax()
+
 		json.NewEncoder(w).Encode(lnurl.LNURLPayResponse1{
 			LNURLResponse:   lnurl.LNURLResponse{Status: "OK"},
 			Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
-			MaxSendable:     4700123,
-			MinSendable:     444000,
+			MinSendable:     min,
+			MaxSendable:     max,
 			EncodedMetadata: lnurpaymetadata,
 			Tag:             "payRequest",
 		})

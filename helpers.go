@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"math/rand"
 	"time"
 
 	"github.com/btcsuite/btcd/btcec"
@@ -47,4 +48,17 @@ func makeFakeInvoice(msat int) string {
 	})
 
 	return bolt11
+}
+
+func generateMinMax() (min, max int64) {
+	if rand.Int63n(100) < 50 {
+		fixed := rand.Int63n(1000) * 1000
+		min = fixed
+		max = fixed
+	} else {
+		min = rand.Int63n(1000) * 1000
+		max = min * rand.Int63n(10)
+	}
+
+	return
 }

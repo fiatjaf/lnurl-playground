@@ -30,9 +30,10 @@ onMount(async () => {
   main {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
   main > * {
-    margin: 12px;
+    margin: 36px 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
