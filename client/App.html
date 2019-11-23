@@ -1,0 +1,237 @@
+<!-- @format -->
+
+<script>
+  import {onMount, afterUpdate} from 'svelte'
+  import QR from './QR.svelte'
+
+  const subProtocolColor = {
+    login: '#82f1ff',
+    pay: '#95f0a4',
+    withdraw: '#ff9469',
+    null: 'transparent'
+  }
+
+  var params = null
+  var lastEventKind = null
+  var login = null
+  var withdraw_req = null
+  var withdraw = null
+  var pay_request = null
+  var pay = null
+  var pay_result = null
+
+  afterUpdate(() => {
+    document.body.style.backgroundColor = subProtocolColor[lastEventKind]
+  })
+
+  onMount(async () => {
+    let r = await fetch('/get-params')
+    params = await r.json()
+
+    var es = new EventSource('/user-data?session=' + params.session)
+    es.addEventListener('login', e => {
+      login = JSON.parse(e.data)
+      lastEventKind = 'login'
+    })
+    es.addEventListener('withdraw-req', e => {
+      withdraw_req = JSON.parse(e.data)
+      withdraw = null
+      lastEventKind = 'withdraw'
+    })
+    es.addEventListener('withdraw', e => {
+      withdraw_req = null
+      withdraw = JSON.parse(e.data)
+      lastEventKind = 'withdraw'
+    })
+    es.addEventListener('pay_request', e => {
+      pay_request = JSON.parse(e.data)
+      pay = null
+      pay_result = null
+      lastEventKind = 'pay'
+    })
+    es.addEventListener('pay', e => {
+      pay_request = null
+      pay = JSON.parse(e.data)
+      lastEventKind = 'pay'
+    })
+    es.addEventListener('pay_result', e => {
+      pay_request = null
+      pay_result = JSON.parse(e.data)
+      lastEventKind = 'pay'
+    })
+  })
+</script>
+
+<style>
+  #main {
+    margin: 23px auto;
+    width: 1200px;
+    max-width: 100%;
+  }
+  h1 {
+    text-align: center;
+  }
+  main {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  main > * {
+    margin: 36px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  th {
+    padding-right: 20px;
+  }
+  th,
+  td {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  td {
+    word-break: break-all;
+  }
+  .hidden {
+    display: none !important;
+  }
+</style>
+
+<div id="main">
+  <h1>lnurl playground</h1>
+  <main>
+    {#if params}
+    <div class:hidden="{lastEventKind && lastEventKind !== 'pay'}">
+      <a href="lightning:{params.lnurlpay}"
+        ><QR value="{params.lnurlpay}" color="#000"
+      /></a>
+      <code>lnurl-pay</code>
+      {#if pay_request}
+      <h4>Params sent to wallet:</h4>
+      <table>
+        <tr>
+          <th>tag</th>
+          <td><code>{pay_request.tag}</code></td>
+        </tr>
+        <tr>
+          <th>callback</th>
+          <td><code>{pay_request.callback}</code></td>
+        </tr>
+        <tr>
+          <th>minSendable / maxSendable</th>
+          <td>
+            <code>{pay_request.minSendable} / {pay_request.maxSendable}</code>
+          </td>
+        </tr>
+        <tr>
+          <th>metadata</th>
+          <td><code>{pay_request.metadata}</code></td>
+        </tr>
+      </table>
+
+      {:else} {#if pay}
+      <h4>Values received from wallet:</h4>
+      <table>
+        <tr>
+          <th>amount</th>
+          <td><code>{pay.amount}</code></td>
+        </tr>
+        <tr>
+          <th>fromnodes</th>
+          <td><code>{pay.fromnodes}</code></td>
+        </tr>
+      </table>
+
+      {/if} {#if pay_result}
+      <h4>Final values sent to wallet:</h4>
+      <table>
+        <tr>
+          <th>pr</th>
+          <td><code>{pay_result.pr}</code></td>
+        </tr>
+        <tr>
+          <th>routes</th>
+          <td><code>{pay_result.routes}</code></td>
+        </tr>
+      </table>
+
+      {/if} {/if}
+    </div>
+    <div class:hidden="{lastEventKind && lastEventKind !== 'withdraw'}">
+      <a href="lightning:{params.lnurlwithdraw}"
+        ><QR value="{params.lnurlwithdraw}" color="#000"
+      /></a>
+      <code>lnurl-withdraw</code>
+      {#if withdraw_req}
+      <h4>Params sent to wallet:</h4>
+      <table>
+        <tr>
+          <th>tag</th>
+          <td><code>{withdraw_req.tag}</code></td>
+        </tr>
+        <tr>
+          <th>callback</th>
+          <td><code>{withdraw_req.callback}</code></td>
+        </tr>
+        <tr>
+          <th>k1</th>
+          <td><code>{withdraw_req.k1}</code></td>
+        </tr>
+        <tr>
+          <th>minWithdrawable / maxWithdrawable</th>
+          <td>
+            <code
+              >{withdraw_req.minWithdrawable} /
+              {withdraw_req.maxWithdrawable}</code
+            >
+          </td>
+        </tr>
+        <tr>
+          <th>defaultDescription</th>
+          <td><code>{withdraw_req.defaultDescription}</code></td>
+        </tr>
+      </table>
+
+      {:else if withdraw}
+      <h4>Values received from wallet:</h4>
+      <table>
+        <tr>
+          <th>pr</th>
+          <td><code>{withdraw.invoice}</code></td>
+        </tr>
+        <tr>
+          <th>k1</th>
+          <td><code>{withdraw.k1}</code></td>
+        </tr>
+      </table>
+
+      {/if}
+    </div>
+    <div class:hidden="{lastEventKind && lastEventKind !== 'login'}">
+      <a href="lightning:{params.lnurllogin}"
+        ><QR value="{params.lnurllogin}" color="#000"
+      /></a>
+      <code>lnurl-auth</code>
+      {#if login}
+      <h4>Values received from wallet:</h4>
+      <table>
+        <tr>
+          <th>key</th>
+          <td><code>{login.key}</code></td>
+        </tr>
+        <tr>
+          <th>k1</th>
+          <td><code>{login.k1}</code></td>
+        </tr>
+        <tr>
+          <th>sig</th>
+          <td><code>{login.sig}</code></td>
+        </tr>
+      </table>
+
+      {/if}
+    </div>
+    {/if}
+  </main>
+</div>

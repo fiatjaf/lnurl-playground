@@ -100,8 +100,7 @@ func setupHandlers() {
 		session := r.URL.Query().Get("session")
 
 		min, max := generateMinMax()
-
-		json.NewEncoder(w).Encode(lnurl.LNURLWithdrawResponse{
+		resp, _ := json.Marshal(lnurl.LNURLWithdrawResponse{
 			LNURLResponse:      lnurl.LNURLResponse{Status: "OK"},
 			Callback:           fmt.Sprintf("%s/lnurl-withdraw/callback/%s", s.ServiceURL, session),
 			K1:                 lnurl.RandomK1(), // use a new k1 here just because we can
@@ -110,6 +109,12 @@ func setupHandlers() {
 			DefaultDescription: "sample withdraw",
 			Tag:                "withdrawRequest",
 		})
+
+		if es, ok := userStreams[session]; ok {
+			es.SendEventMessage(string(resp), "withdraw-req", "")
+		}
+
+		w.Write(resp)
 	})
 
 	http.HandleFunc("/lnurl-withdraw/callback/", func(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +135,7 @@ func setupHandlers() {
 
 		min, max := generateMinMax()
 
-		json.NewEncoder(w).Encode(lnurl.LNURLPayResponse1{
+		resp, _ := json.Marshal(lnurl.LNURLPayResponse1{
 			LNURLResponse:   lnurl.LNURLResponse{Status: "OK"},
 			Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
 			MinSendable:     min,
@@ -138,6 +143,12 @@ func setupHandlers() {
 			EncodedMetadata: lnurpaymetadata,
 			Tag:             "payRequest",
 		})
+
+		if es, ok := userStreams[session]; ok {
+			es.SendEventMessage(string(resp), "pay_request", "")
+		}
+
+		w.Write(resp)
 	})
 
 	http.HandleFunc("/lnurl-pay/callback/", func(w http.ResponseWriter, r *http.Request) {
@@ -155,14 +166,18 @@ func setupHandlers() {
 
 		fakeinvoice := makeFakeInvoice(msat)
 
-		json.NewEncoder(w).Encode(lnurl.LNURLPayResponse2{
+		resp, _ := json.Marshal(lnurl.LNURLPayResponse2{
 			LNURLResponse: lnurl.LNURLResponse{Status: "OK"},
 			PR:            fakeinvoice,
+			Routes:        make([][]lnurl.RouteInfo, 0),
 		})
 
 		if es, ok := userStreams[session]; ok {
 			es.SendEventMessage(`{"fromnodes": "`+fromnodes+`","amount":"`+amount+`"}`, "pay", "")
+			es.SendEventMessage(string(resp), "pay_result", "")
 		}
+
+		w.Write(resp)
 	})
 
 	http.Handle("/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "/static/"}))
