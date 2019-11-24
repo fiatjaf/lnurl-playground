@@ -169,6 +169,7 @@ func setupHandlers() {
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse2{
 			LNURLResponse: lnurl.LNURLResponse{Status: "OK"},
 			PR:            fakeinvoice,
+			SuccessAction: randomSuccessAction(),
 			Routes:        make([][]lnurl.RouteInfo, 0),
 		})
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/fiatjaf/go-lnurl"
 	"github.com/lightningnetwork/lnd/lnwire"
 	"github.com/lightningnetwork/lnd/zpay32"
 )
@@ -61,4 +62,17 @@ func generateMinMax() (min, max int64) {
 	}
 
 	return
+}
+
+func randomSuccessAction() lnurl.SuccessAction {
+	switch rand.Intn(3) {
+	case 0:
+		return lnurl.NoAction()
+	case 1:
+		return lnurl.Action(
+			"You've paid!, now visit this URL: ",
+			"https://lnurl.bigsun.xyz/")
+	default: // case 2
+		return lnurl.Action("Thanks!", "")
+	}
 }
