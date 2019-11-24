@@ -25,6 +25,7 @@ func setupHandlers() {
 		userParams[session] = Preferences{
 			Fail:         r.FormValue("fail") != "false",
 			MetadataSize: mz,
+			Currency:     r.FormValue("currency"),
 		}
 		w.WriteHeader(200)
 	})
@@ -199,14 +200,21 @@ func setupHandlers() {
 			return
 		}
 
-		if p, ok := userParams[session]; ok && p.Fail {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-			return
+		currency := "bc"
+		if p, ok := userParams[session]; ok {
+			if p.Fail {
+				json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+				return
+			}
+
+			if p.Currency != "" {
+				currency = p.Currency
+			}
 		}
 
 		metadata, _ := userMetadata[session]
 		delete(userMetadata, session)
-		fakeinvoice := makeFakeInvoice(msat, metadata)
+		fakeinvoice := makeFakeInvoice(msat, currency, metadata)
 
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse2{
 			LNURLResponse: lnurl.LNURLResponse{Status: "OK"},

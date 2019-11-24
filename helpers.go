@@ -17,9 +17,8 @@ import (
 type Preferences struct {
 	Fail         bool
 	MetadataSize int
+	Currency     string
 }
-
-const currency = "bc"
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz  ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -30,7 +29,7 @@ func randomLetter() string {
 var privkey, _ = btcec.NewPrivateKey(btcec.S256())
 var hash, _ = hex.DecodeString("549cdb9911088e5c9c17569a60c920152610f6de79bf706c168565bfbd78b1bb")
 
-func makeFakeInvoice(msat int, metadata string) string {
+func makeFakeInvoice(msat int, currency string, metadata string) string {
 	var hash32 [32]byte
 	for i := 0; i < 32; i++ {
 		hash32[i] = hash[i]

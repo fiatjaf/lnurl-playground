@@ -21,6 +21,8 @@
   var pay_request = null
   var pay = null
   var pay_result = null
+
+  var currency = 'bc'
   var fail = false
   var metadataSize = 23
 
@@ -65,21 +67,11 @@
     })
   })
 
-  function toggleFail(e) {
+  function setPreferences(e) {
     e.preventDefault()
-    fail = !fail
-    setPreferences()
-  }
-
-  function setMetadataSize(e) {
-    e.preventDefault()
-    setPreferences()
-  }
-
-  function setPreferences() {
     fetch(`/set-preferences?session=${session}`, {
       method: 'post',
-      body: `metadata-size=${metadataSize}&fail=${fail}`,
+      body: `metadata-size=${metadataSize}&fail=${fail}&currency=${currency}`,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'}
     })
   }
@@ -224,12 +216,13 @@
       {/if}
     </div>
     <div id="preferences">
-      <button class:pressed="{fail}" on:click="{toggleFail}">fail?</button>
-      <form on:submit="{setMetadataSize}">
+      <form on:submit="{setPreferences}">
+        <label>fail? <input type="checkbox" bind:checked="{fail}"/></label>
         <label
-          >metadata size:
-          <input type="number" bind:value="{metadataSize}"/></label
-        ><button>set to {metadataSize}</button>
+          >metadata size: <input type="number" bind:value="{metadataSize}"
+        /></label>
+        <label>currency: <input bind:value="{currency}"/></label>
+        <button>set</button>
       </form>
     </div>
     {/if}
@@ -244,6 +237,9 @@
   }
   h1 {
     text-align: center;
+  }
+  input {
+    line-height: 2em;
   }
   main {
     display: flex;
@@ -278,6 +274,10 @@
   }
   #preferences form {
     display: block;
+  }
+  #preferences label {
+    display: block;
+    margin: 4px 0;
   }
   #preferences button {
     background: #e0e0f0;
