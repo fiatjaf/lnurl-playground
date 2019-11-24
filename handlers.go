@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,22 +16,20 @@ import (
 )
 
 func setupHandlers() {
-	http.HandleFunc("/get-params", func(w http.ResponseWriter, r *http.Request) {
-		session := lnurl.RandomK1()
-		lnurllogin, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-login?tag=login&k1=%s", s.ServiceURL, session))
-		lnurlwithdraw, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-withdraw?session=%s", s.ServiceURL, session))
-		lnurlpay, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-pay?session=%s", s.ServiceURL, session))
-
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(struct {
-			Session       string `json:"session"`
-			LNURLLogin    string `json:"lnurllogin"`
-			LNURLWithdraw string `json:"lnurlwithdraw"`
-			LNURLPay      string `json:"lnurlpay"`
-		}{session, lnurllogin, lnurlwithdraw, lnurlpay})
+	http.HandleFunc("/set-preferences", func(w http.ResponseWriter, r *http.Request) {
+		session := r.URL.Query().Get("session")
+		mz, _ := strconv.Atoi(r.FormValue("metadata-size"))
+		if mz == 0 {
+			mz = 23
+		}
+		userParams[session] = Preferences{
+			Fail:         r.FormValue("fail") != "false",
+			MetadataSize: mz,
+		}
+		w.WriteHeader(200)
 	})
 
-	http.HandleFunc("/user-data", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/session", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 		es, ok := userStreams[session]
 
@@ -62,6 +61,19 @@ func setupHandlers() {
 
 			userStreams[session] = es
 		}
+
+		go func() {
+			lnurllogin, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-login?tag=login&k1=%s", s.ServiceURL, session))
+			lnurlwithdraw, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-withdraw?session=%s", s.ServiceURL, session))
+			lnurlpay, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-pay?session=%s", s.ServiceURL, session))
+
+			params, _ := json.Marshal(struct {
+				LNURLLogin    string `json:"lnurllogin"`
+				LNURLWithdraw string `json:"lnurlwithdraw"`
+				LNURLPay      string `json:"lnurlpay"`
+			}{lnurllogin, lnurlwithdraw, lnurlpay})
+			es.SendEventMessage(string(params), "params", "")
+		}()
 
 		es.ServeHTTP(w, r)
 	})
@@ -99,11 +111,16 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-withdraw", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
+		if p, ok := userParams[session]; ok && p.Fail && rand.Intn(10) < 3 {
+			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+			return
+		}
+
 		min, max := generateMinMax()
 		resp, _ := json.Marshal(lnurl.LNURLWithdrawResponse{
 			LNURLResponse:      lnurl.LNURLResponse{Status: "OK"},
 			Callback:           fmt.Sprintf("%s/lnurl-withdraw/callback/%s", s.ServiceURL, session),
-			K1:                 lnurl.RandomK1(), // use a new k1 here just because we can
+			K1:                 lnurl.RandomK1(),
 			MinWithdrawable:    min,
 			MaxWithdrawable:    max,
 			DefaultDescription: "sample withdraw",
@@ -121,6 +138,11 @@ func setupHandlers() {
 		parts := strings.Split(r.URL.Path, "/")
 		session := parts[len(parts)-1]
 
+		if p, ok := userParams[session]; ok && p.Fail {
+			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+			return
+		}
+
 		k1 := r.URL.Query().Get("k1")
 		pr := r.URL.Query().Get("pr")
 		json.NewEncoder(w).Encode(lnurl.OkResponse())
@@ -133,14 +155,27 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-pay", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
+		if p, ok := userParams[session]; ok && p.Fail && rand.Intn(10) < 3 {
+			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+			return
+		}
+
 		min, max := generateMinMax()
+
+		var metadata string
+		if p, ok := userParams[session]; ok && p.MetadataSize > 0 {
+			metadata = generateMetadata(p.MetadataSize)
+		} else {
+			metadata = generateMetadata(23)
+		}
+		userMetadata[session] = metadata
 
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse1{
 			LNURLResponse:   lnurl.LNURLResponse{Status: "OK"},
 			Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
 			MinSendable:     min,
 			MaxSendable:     max,
-			EncodedMetadata: lnurpaymetadata,
+			EncodedMetadata: metadata,
 			Tag:             "payRequest",
 		})
 
@@ -164,7 +199,14 @@ func setupHandlers() {
 			return
 		}
 
-		fakeinvoice := makeFakeInvoice(msat)
+		if p, ok := userParams[session]; ok && p.Fail {
+			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+			return
+		}
+
+		metadata, _ := userMetadata[session]
+		delete(userMetadata, session)
+		fakeinvoice := makeFakeInvoice(msat, metadata)
 
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse2{
 			LNURLResponse: lnurl.LNURLResponse{Status: "OK"},

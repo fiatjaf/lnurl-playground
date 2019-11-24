@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"math/rand"
 	"time"
 
@@ -13,19 +14,29 @@ import (
 	"github.com/lightningnetwork/lnd/zpay32"
 )
 
+type Preferences struct {
+	Fail         bool
+	MetadataSize int
+}
+
 const currency = "bc"
-const lnurpaymetadata = `[["text/plain", "sample lnurl-pay"],    ["text/html", "<p><i>sample</i> <b>lnurl-pay</b></p>"]]`
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz  ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randomLetter() string {
+	return string(letterRunes[rand.Intn(len(letterRunes))])
+}
 
 var privkey, _ = btcec.NewPrivateKey(btcec.S256())
 var hash, _ = hex.DecodeString("549cdb9911088e5c9c17569a60c920152610f6de79bf706c168565bfbd78b1bb")
-var descriptionhash = sha256.Sum256([]byte(lnurpaymetadata))
 
-func makeFakeInvoice(msat int) string {
+func makeFakeInvoice(msat int, metadata string) string {
 	var hash32 [32]byte
 	for i := 0; i < 32; i++ {
 		hash32[i] = hash[i]
 	}
 
+	descriptionhash := sha256.Sum256([]byte(metadata))
 	var descriptionhash32 [32]byte
 	for i := 0; i < 32; i++ {
 		descriptionhash32[i] = descriptionhash[i]
@@ -62,6 +73,20 @@ func generateMinMax() (min, max int64) {
 	}
 
 	return
+}
+
+func generateMetadata(size int) string {
+	plain := ""
+	for i := 0; i < size; i++ {
+		plain += randomLetter()
+	}
+
+	metadata := [][]string{
+		[]string{"text/plain", plain},
+	}
+
+	j, _ := json.Marshal(metadata)
+	return string(j)
 }
 
 func randomSuccessAction() lnurl.SuccessAction {

@@ -20,6 +20,8 @@ var s Settings
 var log = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stderr})
 var userStreams = make(map[string]eventsource.EventSource)
 var userKeys = make(map[string]string)
+var userParams = make(map[string]Preferences)
+var userMetadata = make(map[string]string)
 
 func main() {
 	err = envconfig.Process("", &s)

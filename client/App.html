@@ -11,6 +11,8 @@
     null: 'transparent'
   }
 
+  const session = parseInt(Math.random() * 10000000)
+
   var params = null
   var lastEventKind = null
   var login = null
@@ -19,16 +21,18 @@
   var pay_request = null
   var pay = null
   var pay_result = null
+  var fail = false
+  var metadataSize = 23
 
   afterUpdate(() => {
     document.body.style.backgroundColor = subProtocolColor[lastEventKind]
   })
 
   onMount(async () => {
-    let r = await fetch('/get-params')
-    params = await r.json()
-
-    var es = new EventSource('/user-data?session=' + params.session)
+    var es = new EventSource(`/session?session=${session}`)
+    es.addEventListener('params', e => {
+      params = JSON.parse(e.data)
+    })
     es.addEventListener('login', e => {
       login = JSON.parse(e.data)
       lastEventKind = 'login'
@@ -60,43 +64,26 @@
       lastEventKind = 'pay'
     })
   })
-</script>
 
-<style>
-  #main {
-    margin: 23px auto;
-    width: 1200px;
-    max-width: 100%;
+  function toggleFail(e) {
+    e.preventDefault()
+    fail = !fail
+    setPreferences()
   }
-  h1 {
-    text-align: center;
+
+  function setMetadataSize(e) {
+    e.preventDefault()
+    setPreferences()
   }
-  main {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
+
+  function setPreferences() {
+    fetch(`/set-preferences?session=${session}`, {
+      method: 'post',
+      body: `metadata-size=${metadataSize}&fail=${fail}`,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
   }
-  main > * {
-    margin: 36px 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  th {
-    padding-right: 20px;
-  }
-  th,
-  td {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-  td {
-    word-break: break-all;
-  }
-  .hidden {
-    display: none !important;
-  }
-</style>
+</script>
 
 <div id="main">
   <h1>lnurl playground</h1>
@@ -236,6 +223,67 @@
 
       {/if}
     </div>
+    <div id="preferences">
+      <button class:pressed="{fail}" on:click="{toggleFail}">fail?</button>
+      <form on:submit="{setMetadataSize}">
+        <label
+          >metadata size:
+          <input type="number" bind:value="{metadataSize}"/></label
+        ><button>set to {metadataSize}</button>
+      </form>
+    </div>
     {/if}
   </main>
 </div>
+
+<style>
+  #main {
+    margin: 23px auto;
+    width: 1200px;
+    max-width: 100%;
+  }
+  h1 {
+    text-align: center;
+  }
+  main {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  main > * {
+    margin: 36px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  th {
+    padding-right: 20px;
+  }
+  th,
+  td {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  td {
+    word-break: break-all;
+  }
+  .hidden {
+    display: none !important;
+  }
+  #preferences {
+    width: 300px;
+  }
+  #preferences > * {
+    margin: 10px;
+  }
+  #preferences form {
+    display: block;
+  }
+  #preferences button {
+    background: #e0e0f0;
+    padding: 1px 17px;
+  }
+  #preferences button.pressed {
+    border-style: inset;
+  }
+</style>
