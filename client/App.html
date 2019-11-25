@@ -11,6 +11,8 @@
     null: 'transparent'
   }
 
+  const currencies = ['bc', 'bcrt', 'sb', 'tb']
+
   const session = parseInt(Math.random() * 10000000)
 
   var params = null
@@ -221,7 +223,12 @@
         <label
           >metadata size: <input type="number" bind:value="{metadataSize}"
         /></label>
-        <label>currency: <input bind:value="{currency}"/></label>
+        <label
+          >currency:
+          <select bind:value="{currency}"
+            >{#each currencies as c}<option>{c}</option>{/each}</select
+          ></label
+        >
         <button>set</button>
       </form>
     </div>
