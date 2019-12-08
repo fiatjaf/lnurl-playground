@@ -6,3 +6,6 @@ static/bundle.js: $(shell find ./client)
 
 bindata.go: static/bundle.js static/index.html static/global.css
 	go-bindata -o bindata.go static/...
+
+deploy: lnurl-playground
+	scp lnurl-playground nusakan-58:lnurl-playground/lnurl-playground
