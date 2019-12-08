@@ -8,6 +8,7 @@
     login: '#82f1ff',
     pay: '#95f0a4',
     withdraw: '#ff9469',
+    channel: '#a695a9',
     null: 'transparent'
   }
 
@@ -20,9 +21,11 @@
   var login = null
   var withdraw_req = null
   var withdraw = null
-  var pay_request = null
+  var pay_req = null
   var pay = null
   var pay_result = null
+  var channel_req = null
+  var channel = null
 
   var currency = 'bc'
   var fail = false
@@ -51,21 +54,31 @@
       withdraw = JSON.parse(e.data)
       lastEventKind = 'withdraw'
     })
-    es.addEventListener('pay_request', e => {
-      pay_request = JSON.parse(e.data)
+    es.addEventListener('pay-req', e => {
+      pay_req = JSON.parse(e.data)
       pay = null
       pay_result = null
       lastEventKind = 'pay'
     })
     es.addEventListener('pay', e => {
-      pay_request = null
+      pay_req = null
       pay = JSON.parse(e.data)
       lastEventKind = 'pay'
     })
     es.addEventListener('pay_result', e => {
-      pay_request = null
+      pay_req = null
       pay_result = JSON.parse(e.data)
       lastEventKind = 'pay'
+    })
+    es.addEventListener('channel-req', e => {
+      channel_req = JSON.parse(e.data)
+      channel = null
+      lastEventKind = 'channel'
+    })
+    es.addEventListener('channel', e => {
+      channel_req = null
+      channel = JSON.parse(e.data)
+      lastEventKind = 'channel'
     })
   })
 
@@ -88,26 +101,26 @@
         ><QR value="{params.lnurlpay}" color="#000"
       /></a>
       <code>lnurl-pay</code>
-      {#if pay_request}
+      {#if pay_req}
       <h4>Params sent to wallet:</h4>
       <table>
         <tr>
           <th>tag</th>
-          <td><code>{pay_request.tag}</code></td>
+          <td><code>{pay_req.tag}</code></td>
         </tr>
         <tr>
           <th>callback</th>
-          <td><code>{pay_request.callback}</code></td>
+          <td><code>{pay_req.callback}</code></td>
         </tr>
         <tr>
           <th>minSendable / maxSendable</th>
           <td>
-            <code>{pay_request.minSendable} / {pay_request.maxSendable}</code>
+            <code>{pay_req.minSendable} / {pay_req.maxSendable}</code>
           </td>
         </tr>
         <tr>
           <th>metadata</th>
-          <td><code>{pay_request.metadata}</code></td>
+          <td><code>{pay_req.metadata}</code></td>
         </tr>
       </table>
 
@@ -183,7 +196,7 @@
       <table>
         <tr>
           <th>pr</th>
-          <td><code>{withdraw.invoice}</code></td>
+          <td><code>{withdraw.pr}</code></td>
         </tr>
         <tr>
           <th>k1</th>
@@ -212,6 +225,51 @@
         <tr>
           <th>sig</th>
           <td><code>{login.sig}</code></td>
+        </tr>
+      </table>
+
+      {/if}
+    </div>
+    <div class:hidden="{lastEventKind && lastEventKind !== 'channel'}">
+      <a href="lightning:{params.lnurlchannel}"
+        ><QR value="{params.lnurlchannel}" color="#000"
+      /></a>
+      <code>lnurl-channel</code>
+      {#if channel_req}
+      <h4>Params sent to wallet:</h4>
+      <table>
+        <tr>
+          <th>tag</th>
+          <td><code>{channel_req.tag}</code></td>
+        </tr>
+        <tr>
+          <th>callback</th>
+          <td><code>{channel_req.callback}</code></td>
+        </tr>
+        <tr>
+          <th>k1</th>
+          <td><code>{channel_req.k1}</code></td>
+        </tr>
+        <tr>
+          <th>uri</th>
+          <td><code>{channel_req.uri}</code></td>
+        </tr>
+      </table>
+
+      {:else if channel}
+      <h4>Values received from wallet:</h4>
+      <table>
+        <tr>
+          <th>k1</th>
+          <td><code>{channel.k1}</code></td>
+        </tr>
+        <tr>
+          <th>remoteid</th>
+          <td><code>{channel.remoteid}</code></td>
+        </tr>
+        <tr>
+          <th>private</th>
+          <td><code>{channel.private}</code></td>
         </tr>
       </table>
 

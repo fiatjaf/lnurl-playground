@@ -49,7 +49,7 @@ func setupHandlers() {
 			)
 
 			go func() {
-				time.Sleep(1 * time.Second)
+				time.Sleep(2 * time.Second)
 				es.SendRetryMessage(3 * time.Second)
 			}()
 
@@ -64,15 +64,18 @@ func setupHandlers() {
 		}
 
 		go func() {
+			time.Sleep(2 * time.Second)
 			lnurllogin, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-login?tag=login&k1=%s", s.ServiceURL, session))
 			lnurlwithdraw, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-withdraw?session=%s", s.ServiceURL, session))
 			lnurlpay, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-pay?session=%s", s.ServiceURL, session))
+			lnurlchannel, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-channel?session=%s", s.ServiceURL, session))
 
 			params, _ := json.Marshal(struct {
 				LNURLLogin    string `json:"lnurllogin"`
 				LNURLWithdraw string `json:"lnurlwithdraw"`
 				LNURLPay      string `json:"lnurlpay"`
-			}{lnurllogin, lnurlwithdraw, lnurlpay})
+				LNURLChannel  string `json:"lnurlchannel"`
+			}{lnurllogin, lnurlwithdraw, lnurlpay, lnurlchannel})
 			es.SendEventMessage(string(params), "params", "")
 		}()
 
@@ -149,7 +152,48 @@ func setupHandlers() {
 		json.NewEncoder(w).Encode(lnurl.OkResponse())
 
 		if es, ok := userStreams[session]; ok {
-			es.SendEventMessage(`{"invoice": "`+pr+`","k1":"`+k1+`"}`, "withdraw", "")
+			es.SendEventMessage(`{"pr": "`+pr+`","k1":"`+k1+`"}`, "withdraw", "")
+		}
+	})
+
+	http.HandleFunc("/lnurl-channel", func(w http.ResponseWriter, r *http.Request) {
+		session := r.URL.Query().Get("session")
+
+		if p, ok := userParams[session]; ok && p.Fail && rand.Intn(10) < 3 {
+			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+			return
+		}
+
+		resp, _ := json.Marshal(lnurl.LNURLChannelResponse{
+			Callback: fmt.Sprintf("%s/lnurl-channel/callback/%s", s.ServiceURL, session),
+			K1:       lnurl.RandomK1(),
+			Tag:      "channelRequest",
+			URI:      "0331f80652fb840239df8dc99205792bba2e559a05469915804c08420230e23c7c@74.108.13.152:9735",
+		})
+
+		if es, ok := userStreams[session]; ok {
+			es.SendEventMessage(string(resp), "channel-req", "")
+		}
+
+		w.Write(resp)
+	})
+
+	http.HandleFunc("/lnurl-channel/callback/", func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(r.URL.Path, "/")
+		session := parts[len(parts)-1]
+
+		if p, ok := userParams[session]; ok && p.Fail {
+			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
+			return
+		}
+
+		k1 := r.URL.Query().Get("k1")
+		private := r.URL.Query().Get("private")
+		remoteid := r.URL.Query().Get("remoteid")
+		json.NewEncoder(w).Encode(lnurl.OkResponse())
+
+		if es, ok := userStreams[session]; ok {
+			es.SendEventMessage(`{"private": "`+private+`", "remoteid": "`+remoteid+`", "k1":"`+k1+`"}`, "channel", "")
 		}
 	})
 
@@ -181,7 +225,7 @@ func setupHandlers() {
 		})
 
 		if es, ok := userStreams[session]; ok {
-			es.SendEventMessage(string(resp), "pay_request", "")
+			es.SendEventMessage(string(resp), "pay-req", "")
 		}
 
 		w.Write(resp)
