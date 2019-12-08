@@ -122,7 +122,6 @@ func setupHandlers() {
 
 		min, max := generateMinMax()
 		resp, _ := json.Marshal(lnurl.LNURLWithdrawResponse{
-			LNURLResponse:      lnurl.LNURLResponse{Status: "OK"},
 			Callback:           fmt.Sprintf("%s/lnurl-withdraw/callback/%s", s.ServiceURL, session),
 			K1:                 lnurl.RandomK1(),
 			MinWithdrawable:    min,
@@ -216,7 +215,6 @@ func setupHandlers() {
 		userMetadata[session] = metadata
 
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse1{
-			LNURLResponse:   lnurl.LNURLResponse{Status: "OK"},
 			Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
 			MinSendable:     min,
 			MaxSendable:     max,
@@ -258,12 +256,11 @@ func setupHandlers() {
 
 		metadata, _ := userMetadata[session]
 		delete(userMetadata, session)
-		fakeinvoice := makeFakeInvoice(msat, currency, metadata)
+		bolt11, preimage := makeInvoice(msat, currency, metadata)
 
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse2{
-			LNURLResponse: lnurl.LNURLResponse{Status: "OK"},
-			PR:            fakeinvoice,
-			SuccessAction: randomSuccessAction(),
+			PR:            bolt11,
+			SuccessAction: randomSuccessAction(preimage),
 			Routes:        make([][]lnurl.RouteInfo, 0),
 		})
 

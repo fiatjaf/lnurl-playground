@@ -11,8 +11,10 @@ import (
 )
 
 type Settings struct {
-	Port       string `envconfig:"PORT" required:"true"`
-	ServiceURL string `envconfig:"SERVICE_URL" required:"true"`
+	Port        string `envconfig:"PORT" required:"true"`
+	ServiceURL  string `envconfig:"SERVICE_URL" required:"true"`
+	SparkoURL   string `envconfig:"SPARKO_URL"`
+	SparkoToken string `envconfig:"SPARKO_TOKEN"`
 }
 
 var err error
