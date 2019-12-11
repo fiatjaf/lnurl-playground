@@ -109,7 +109,7 @@ func generateMetadata(size int) string {
 func randomSuccessAction(preimage []byte) *lnurl.SuccessAction {
 	switch rand.Intn(3) {
 	case 0:
-		return lnurl.NoAction()
+		return nil
 	case 1:
 		return lnurl.Action(
 			"You've paid!, now visit this URL: ",
