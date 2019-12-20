@@ -100,6 +100,7 @@ func generateMetadata(size int) string {
 
 	metadata := [][]string{
 		[]string{"text/plain", plain},
+		[]string{"image/png;base64", image},
 	}
 
 	j, _ := json.Marshal(metadata)
