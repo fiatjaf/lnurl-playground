@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elazarl/go-bindata-assetfs"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/fiatjaf/go-lnurl"
 	"gopkg.in/antage/eventsource.v1"
 )
@@ -262,6 +262,7 @@ func setupHandlers() {
 			PR:            bolt11,
 			SuccessAction: randomSuccessAction(preimage),
 			Routes:        make([][]lnurl.RouteInfo, 0),
+			Disposable:    true,
 		})
 
 		if es, ok := userStreams[session]; ok {
