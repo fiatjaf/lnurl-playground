@@ -80,13 +80,13 @@ func makeFakeInvoice(msat int, currency string, h [32]byte, preimage []byte) str
 }
 
 func generateMinMax() (min, max int64) {
-	if rand.Int63n(100) < 50 {
-		fixed := (1 + rand.Int63n(10)) * 1000
+	if rand.Int63n(100) < 30 {
+		fixed := (1 + rand.Int63n(15)) * 1000
 		min = fixed
 		max = fixed
 	} else {
 		min = (1 + rand.Int63n(5)) * 1000
-		max = min * 2
+		max = min * 4
 	}
 
 	return
