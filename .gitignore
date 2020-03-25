@@ -5,3 +5,4 @@ node_modules
 *.env
 lnurl-playground
 bindata.go
+static/codec

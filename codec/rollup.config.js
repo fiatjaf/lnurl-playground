@@ -1,11 +1,12 @@
 /** @format */
 
 import svelte from 'rollup-plugin-svelte'
-import resolve from 'rollup-plugin-node-resolve'
-import commonjs from 'rollup-plugin-commonjs'
+import resolve from '@rollup/plugin-node-resolve'
+import commonjs from '@rollup/plugin-commonjs'
+import inject from '@rollup/plugin-inject'
 import {terser} from 'rollup-plugin-terser'
 
-const production = !process.env.ROLLUP_WATCH
+const production = process.env.NODE_ENV === 'production'
 
 export default {
   input: 'client/main.js',
@@ -34,9 +35,14 @@ export default {
     resolve({
       browser: true,
       dedupe: importee =>
-        importee === 'svelte' || importee.startsWith('svelte/')
+        importee === 'svelte' || importee.startsWith('svelte/'),
+  preferBuiltins: false,
     }),
     commonjs(),
+
+    inject({
+      Buffer: ['buffer', 'Buffer']
+    }),
 
     // If we're building for production (npm run build
     // instead of npm run dev), minify

@@ -262,7 +262,7 @@ func setupHandlers() {
 			PR:            bolt11,
 			SuccessAction: randomSuccessAction(preimage),
 			Routes:        make([][]lnurl.RouteInfo, 0),
-			Disposable:    true,
+			Disposable:    lnurl.TRUE,
 		})
 
 		if es, ok := userStreams[session]; ok {
@@ -273,5 +273,5 @@ func setupHandlers() {
 		w.Write(resp)
 	})
 
-	http.Handle("/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "/static/"}))
+	http.Handle("/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "static"}))
 }

@@ -1,0 +1,17 @@
+*.swo
+*.swp
+*.db
+*.db-journal
+*.env
+/target
+**/*.rs.bk
+*.pyc
+*.pyo
+venv
+.pyre
+static/bundle.*
+node_modules
+bigsun_missing.pkl
+
+# Local Netlify folder
+.netlify

@@ -93,7 +93,12 @@
 </script>
 
 <div id="main">
-  <h1>lnurl playground</h1>
+  <header>
+    <h1>lnurl playground</h1>
+    <small>
+      <a href="/codec">lnurl encoder/decoder</a>
+    </small>
+  </header>
   <main>
     {#if params}
     <div class:hidden="{lastEventKind && lastEventKind !== 'pay'}">
@@ -300,8 +305,24 @@
     width: 1200px;
     max-width: 100%;
   }
-  h1 {
+  header {
+    display: flex;
+  }
+  header h1 {
+    flex-grow: 3;
     text-align: center;
+  }
+  header small {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+  }
+  header small a {
+    color: #333;
+  }
+  header small a:hover {
+    text-decoration: none;
   }
   input {
     line-height: 2em;
