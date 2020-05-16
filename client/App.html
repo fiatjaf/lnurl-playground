@@ -14,7 +14,11 @@
 
   const currencies = ['bc', 'bcrt', 'sb', 'tb']
 
-  const session = parseInt(Math.random() * 10000000)
+  const hex = '0123456789abcdef'
+  var session = ''
+  for (let i = 0; i < 64; ++i) {
+    session += hex.charAt(Math.floor(Math.random() * hex.length))
+  }
 
   var params = null
   var lastEventKind = null
