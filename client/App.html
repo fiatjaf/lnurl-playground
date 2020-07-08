@@ -33,6 +33,7 @@
 
   var currency = 'bc'
   var fail = false
+  var disposable = true
   var metadataSize = 23
 
   afterUpdate(() => {
@@ -90,7 +91,7 @@
     e.preventDefault()
     fetch(`/set-preferences?session=${session}`, {
       method: 'post',
-      body: `metadata-size=${metadataSize}&fail=${fail}&currency=${currency}`,
+      body: `metadata-size=${metadataSize}&fail=${fail}&disposable=${disposable}&currency=${currency}`,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'}
     })
   }
@@ -287,6 +288,9 @@
     <div id="preferences">
       <form on:submit="{setPreferences}">
         <label>fail? <input type="checkbox" bind:checked="{fail}"/></label>
+        <label
+          >disposable? <input type="checkbox" bind:checked="{disposable}"
+        /></label>
         <label
           >metadata size: <input type="number" bind:value="{metadataSize}"
         /></label>

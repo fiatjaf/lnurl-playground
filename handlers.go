@@ -24,6 +24,7 @@ func setupHandlers() {
 		}
 		userParams[session] = Preferences{
 			Fail:         r.FormValue("fail") != "false",
+			Disposable:   r.FormValue("disposable") == "true",
 			MetadataSize: mz,
 			Currency:     r.FormValue("currency"),
 		}
@@ -115,7 +116,7 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-withdraw", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
-		if p, ok := userParams[session]; ok && p.Fail && rand.Intn(10) < 3 {
+		if p, ok := userParams[session]; ok && p.Fail {
 			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
 			return
 		}
@@ -158,7 +159,7 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-channel", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
-		if p, ok := userParams[session]; ok && p.Fail && rand.Intn(10) < 3 {
+		if p, ok := userParams[session]; ok && p.Fail {
 			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
 			return
 		}
@@ -243,6 +244,7 @@ func setupHandlers() {
 		}
 
 		currency := "bc"
+		disposable := lnurl.TRUE
 		if p, ok := userParams[session]; ok {
 			if p.Fail {
 				json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
@@ -251,6 +253,10 @@ func setupHandlers() {
 
 			if p.Currency != "" {
 				currency = p.Currency
+			}
+
+			if p.Disposable == false {
+				disposable = lnurl.FALSE
 			}
 		}
 
@@ -262,7 +268,7 @@ func setupHandlers() {
 			PR:            bolt11,
 			SuccessAction: randomSuccessAction(preimage),
 			Routes:        make([][]lnurl.RouteInfo, 0),
-			Disposable:    lnurl.TRUE,
+			Disposable:    disposable,
 		})
 
 		if es, ok := userStreams[session]; ok {

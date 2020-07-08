@@ -18,6 +18,7 @@ import (
 
 type Preferences struct {
 	Fail         bool
+	Disposable   bool
 	MetadataSize int
 	Currency     string
 }
