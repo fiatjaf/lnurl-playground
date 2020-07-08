@@ -7,7 +7,9 @@
   var output = ''
 
   function islnurl(s) {
-    return input.toLowerCase().slice(0, 6) == 'lnurl1'
+    s = input.toLowerCase()
+    if (s.indexOf(':') !== -1) s = s.split(':')[1]
+    return s.slice(0, 6) === 'lnurl1'
   }
 
   function parse(e) {
