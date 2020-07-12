@@ -97,9 +97,85 @@
   }
 </script>
 
+<style>
+  #main {
+    margin: 23px auto;
+    width: 1200px;
+    max-width: 100%;
+  }
+  header {
+    display: flex;
+  }
+  header h1 {
+    flex-grow: 3;
+    text-align: center;
+    cursor: pointer;
+  }
+  header small {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+  }
+  header small a {
+    color: #333;
+  }
+  header small a:hover {
+    text-decoration: none;
+  }
+  input {
+    line-height: 2em;
+  }
+  main {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  main > * {
+    margin: 36px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  th {
+    padding-right: 20px;
+  }
+  th,
+  td {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  td {
+    word-break: break-all;
+  }
+  .hidden {
+    display: none !important;
+  }
+  #preferences {
+    width: 300px;
+  }
+  #preferences > * {
+    margin: 10px;
+  }
+  #preferences form {
+    display: block;
+  }
+  #preferences label {
+    display: block;
+    margin: 4px 0;
+  }
+  #preferences button {
+    background: #e0e0f0;
+    padding: 1px 17px;
+  }
+  #preferences button.pressed {
+    border-style: inset;
+  }
+</style>
+
 <div id="main">
   <header>
-    <h1>lnurl playground</h1>
+    <h1 on:click="{() => location.reload()}">lnurl playground</h1>
     <small>
       <a href="/codec">lnurl encoder/decoder</a>
     </small>
@@ -306,78 +382,3 @@
     {/if}
   </main>
 </div>
-
-<style>
-  #main {
-    margin: 23px auto;
-    width: 1200px;
-    max-width: 100%;
-  }
-  header {
-    display: flex;
-  }
-  header h1 {
-    flex-grow: 3;
-    text-align: center;
-  }
-  header small {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 50px;
-  }
-  header small a {
-    color: #333;
-  }
-  header small a:hover {
-    text-decoration: none;
-  }
-  input {
-    line-height: 2em;
-  }
-  main {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-  main > * {
-    margin: 36px 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  th {
-    padding-right: 20px;
-  }
-  th,
-  td {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-  td {
-    word-break: break-all;
-  }
-  .hidden {
-    display: none !important;
-  }
-  #preferences {
-    width: 300px;
-  }
-  #preferences > * {
-    margin: 10px;
-  }
-  #preferences form {
-    display: block;
-  }
-  #preferences label {
-    display: block;
-    margin: 4px 0;
-  }
-  #preferences button {
-    background: #e0e0f0;
-    padding: 1px 17px;
-  }
-  #preferences button.pressed {
-    border-style: inset;
-  }
-</style>
