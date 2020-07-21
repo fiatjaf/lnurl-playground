@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"math/rand"
@@ -11,9 +12,11 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/fiatjaf/go-lnurl"
 	lightning "github.com/fiatjaf/lightningd-gjson-rpc"
+	"github.com/imroc/req"
 	"github.com/lightningnetwork/lnd/lnwire"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"github.com/lucsky/cuid"
+	"github.com/tidwall/gjson"
 )
 
 type Preferences struct {
@@ -31,33 +34,55 @@ func randomLetter() string {
 
 var privkey, _ = btcec.NewPrivateKey(btcec.S256())
 
-func makeInvoice(msat int, currency string, metadata string) (string, []byte) {
+func makeInvoice(msat int64, currency string, metadata string) (string, []byte) {
 	preimage, _ := hex.DecodeString(lnurl.RandomK1())
 	h := sha256.Sum256([]byte(metadata))
 
-	if currency != "bc" {
-		return makeFakeInvoice(msat, currency, h, preimage), preimage
+	var bolt11 string
+	var err error
+
+	switch currency {
+	case "bc":
+		spark := &lightning.Client{
+			SparkURL:    s.SparkoURL,
+			SparkToken:  s.SparkoToken,
+			CallTimeout: time.Second * 3,
+		}
+		var inv gjson.Result
+		inv, err = spark.CallNamed("lnurlinvoice",
+			"msatoshi", msat,
+			"label", "lnurl.bigsun.xyz/"+cuid.Slug(),
+			"description_hash", hex.EncodeToString(h[:]),
+			"preimage", hex.EncodeToString(preimage),
+		)
+		bolt11 = inv.Get("bolt11").String()
+	case "tb":
+		r, werr := req.Post(s.LndTestnetURL+"/v1/invoices", req.Header{
+			"Grpc-Metadata-macaroon": s.LndTestnetMacaroon,
+		}, req.BodyJSON(struct {
+			ValueMsat       int64  `json:"value_msat"`
+			DescriptionHash string `json:"description_hash"`
+			RPreimage       string `json:"r_preimage"`
+		}{
+			msat,
+			base64.StdEncoding.EncodeToString(h[:]),
+			base64.StdEncoding.EncodeToString(preimage),
+		}))
+		if werr != nil {
+			err = werr
+			break
+		}
+		bolt11 = gjson.Parse(r.String()).Get("payment_request").String()
 	}
 
-	spark := &lightning.Client{
-		SparkURL:    s.SparkoURL,
-		SparkToken:  s.SparkoToken,
-		CallTimeout: time.Second * 3,
-	}
-	inv, err := spark.CallNamed("lnurlinvoice",
-		"msatoshi", msat,
-		"label", "lnurl.bigsun.xyz/"+cuid.Slug(),
-		"description_hash", hex.EncodeToString(h[:]),
-		"preimage", hex.EncodeToString(preimage),
-	)
 	if err != nil {
 		log.Warn().Err(err).Msg("couldn't generate real invoice, using a fake")
 		return makeFakeInvoice(msat, currency, h, preimage), preimage
 	}
-	return inv.Get("bolt11").String(), preimage
+	return bolt11, preimage
 }
 
-func makeFakeInvoice(msat int, currency string, h [32]byte, preimage []byte) string {
+func makeFakeInvoice(msat int64, currency string, h [32]byte, preimage []byte) string {
 	hash := sha256.Sum256(preimage)
 
 	invoice, _ := zpay32.NewInvoice(

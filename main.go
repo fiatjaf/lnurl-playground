@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
 	"net/http"
 	"os"
 
+	"github.com/imroc/req"
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -11,10 +13,12 @@ import (
 )
 
 type Settings struct {
-	Port        string `envconfig:"PORT" required:"true"`
-	ServiceURL  string `envconfig:"SERVICE_URL" required:"true"`
-	SparkoURL   string `envconfig:"SPARKO_URL"`
-	SparkoToken string `envconfig:"SPARKO_TOKEN"`
+	Port               string `envconfig:"PORT" required:"true"`
+	ServiceURL         string `envconfig:"SERVICE_URL" required:"true"`
+	SparkoURL          string `envconfig:"SPARKO_URL"`
+	SparkoToken        string `envconfig:"SPARKO_TOKEN"`
+	LndTestnetURL      string `envconfig:"LND_TESTNET_URL"`
+	LndTestnetMacaroon string `envconfig:"LND_TESTNET_MACAROON"`
 }
 
 var err error
@@ -26,6 +30,9 @@ var userParams = make(map[string]Preferences)
 var userMetadata = make(map[string]string)
 
 func main() {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	req.SetClient(http.DefaultClient)
+
 	err = envconfig.Process("", &s)
 	if err != nil {
 		log.Fatal().Err(err).Msg("couldn't process envconfig.")

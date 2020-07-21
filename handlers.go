@@ -237,7 +237,7 @@ func setupHandlers() {
 		amount := r.URL.Query().Get("amount")
 		fromnodes := r.URL.Query().Get("fromnodes")
 
-		msat, err := strconv.Atoi(amount)
+		msat, err := strconv.ParseInt(amount, 10, 64)
 		if err != nil {
 			json.NewEncoder(w).Encode(lnurl.ErrorResponse("amount is not integer"))
 			return
