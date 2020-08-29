@@ -49,7 +49,7 @@ func makeInvoice(msat int64, currency string, metadata string) (string, []byte) 
 			CallTimeout: time.Second * 3,
 		}
 		var inv gjson.Result
-		inv, err = spark.CallNamed("lnurlinvoice",
+		inv, err = spark.CallNamed("invoicewithdescriptionhash",
 			"msatoshi", msat,
 			"label", "lnurl.bigsun.xyz/"+cuid.Slug(),
 			"description_hash", hex.EncodeToString(h[:]),
