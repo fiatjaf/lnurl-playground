@@ -15,6 +15,6 @@ bindata.go: static/bundle.js static/index.html static/global.css static/codec/bu
 	go-bindata -o bindata.go static/...
 
 deploy: lnurl-playground
-	ssh root@nusakan-58 'systemctl stop lnurl'
-	scp lnurl-playground nusakan-58:lnurl-playground/lnurl-playground
-	ssh root@nusakan-58 'systemctl start lnurl'
+	ssh root@hulsmann 'systemctl stop lnurl'
+	scp lnurl-playground hulsmann:lnurl-playground/lnurl-playground
+	ssh root@hulsmann 'systemctl start lnurl'
