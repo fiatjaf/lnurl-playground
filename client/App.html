@@ -1,99 +1,106 @@
 <!-- @format -->
 
 <script>
-  import {onMount, afterUpdate} from 'svelte'
-  import QR from './QR.svelte'
+  import { onMount, afterUpdate } from "svelte";
+  import QR from "./QR.svelte";
 
   const subProtocolColor = {
-    login: '#82f1ff',
-    pay: '#95f0a4',
-    withdraw: '#ff9469',
-    channel: '#a695a9',
-    null: 'transparent'
-  }
+    login: "#82f1ff",
+    pay: "#95f0a4",
+    withdraw: "#ff9469",
+    channel: "#a695a9",
+    null: "transparent",
+  };
 
-  const currencies = ['bc', 'bcrt', 'sb', 'tb']
+  const currencies = ["bc", "bcrt", "sb", "tb"];
 
-  const hex = '0123456789abcdef'
-  var session = ''
+  const hex = "0123456789abcdef";
+  var session = "";
   for (let i = 0; i < 64; ++i) {
-    session += hex.charAt(Math.floor(Math.random() * hex.length))
+    session += hex.charAt(Math.floor(Math.random() * hex.length));
   }
 
-  var params = null
-  var lastEventKind = null
-  var login = null
-  var withdraw_req = null
-  var withdraw = null
-  var pay_req = null
-  var pay = null
-  var pay_result = null
-  var channel_req = null
-  var channel = null
+  var params = null;
+  var lastEventKind = null;
+  var login = null;
+  var withdraw_req = null;
+  var withdraw = null;
+  var pay_req = null;
+  var pay = null;
+  var pay_result = null;
+  var channel_req = null;
+  var channel = null;
 
-  var currency = 'bc'
-  var fail = false
-  var disposable = true
-  var metadataSize = 23
+  // preferences
+  var currency = "bc";
+  var fail = false;
+  var disposable = true;
+  var metadataSize = 23;
 
   afterUpdate(() => {
-    document.body.style.backgroundColor = subProtocolColor[lastEventKind]
-  })
+    document.body.style.borderColor = subProtocolColor[lastEventKind];
+  });
 
   onMount(async () => {
-    var es = new EventSource(`/session?session=${session}`)
-    es.addEventListener('params', e => {
-      params = JSON.parse(e.data)
-    })
-    es.addEventListener('login', e => {
-      login = JSON.parse(e.data)
-      lastEventKind = 'login'
-    })
-    es.addEventListener('withdraw-req', e => {
-      withdraw_req = JSON.parse(e.data)
-      withdraw = null
-      lastEventKind = 'withdraw'
-    })
-    es.addEventListener('withdraw', e => {
-      withdraw_req = null
-      withdraw = JSON.parse(e.data)
-      lastEventKind = 'withdraw'
-    })
-    es.addEventListener('pay-req', e => {
-      pay_req = JSON.parse(e.data)
-      pay = null
-      pay_result = null
-      lastEventKind = 'pay'
-    })
-    es.addEventListener('pay', e => {
-      pay_req = null
-      pay = JSON.parse(e.data)
-      lastEventKind = 'pay'
-    })
-    es.addEventListener('pay_result', e => {
-      pay_req = null
-      pay_result = JSON.parse(e.data)
-      lastEventKind = 'pay'
-    })
-    es.addEventListener('channel-req', e => {
-      channel_req = JSON.parse(e.data)
-      channel = null
-      lastEventKind = 'channel'
-    })
-    es.addEventListener('channel', e => {
-      channel_req = null
-      channel = JSON.parse(e.data)
-      lastEventKind = 'channel'
-    })
-  })
+    var es = new EventSource(`/session?session=${session}`);
+    es.addEventListener("params", (e) => {
+      params = JSON.parse(e.data);
+    });
+    es.addEventListener("login", (e) => {
+      login = JSON.parse(e.data);
+      lastEventKind = "login";
+    });
+    es.addEventListener("withdraw-req", (e) => {
+      withdraw_req = JSON.parse(e.data);
+      withdraw = null;
+      lastEventKind = "withdraw";
+    });
+    es.addEventListener("withdraw", (e) => {
+      withdraw = JSON.parse(e.data);
+      lastEventKind = "withdraw";
+    });
+    es.addEventListener("pay-req", (e) => {
+      pay_req = JSON.parse(e.data);
+      pay = null;
+      pay_result = null;
+      lastEventKind = "pay";
+    });
+    es.addEventListener("pay", (e) => {
+      pay = JSON.parse(e.data);
+      lastEventKind = "pay";
+    });
+    es.addEventListener("pay_result", (e) => {
+      pay_req = null;
+      pay_result = JSON.parse(e.data);
+      lastEventKind = "pay";
+    });
+    es.addEventListener("channel-req", (e) => {
+      channel_req = JSON.parse(e.data);
+      channel = null;
+      lastEventKind = "channel";
+    });
+    es.addEventListener("channel", (e) => {
+      channel = JSON.parse(e.data);
+      lastEventKind = "channel";
+    });
+  });
 
   function setPreferences(e) {
-    e.preventDefault()
+    e.preventDefault();
     fetch(`/set-preferences?session=${session}`, {
-      method: 'post',
+      method: "post",
       body: `metadata-size=${metadataSize}&fail=${fail}&disposable=${disposable}&currency=${currency}`,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-    })
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  }
+
+  function triggerNotify(e) {
+    e.preventDefault();
+    fetch(`/trigger-notify`, {
+      method: "post",
+      body: `notifyURL=${encodeURIComponent(withdraw.balanceNotify)}`,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
   }
 </script>
 
@@ -187,6 +194,7 @@
         ><QR value="{params.lnurlpay}" color="#000"
       /></a>
       <code>lnurl-pay</code>
+
       {#if pay_req}
       <h4>Params sent to wallet:</h4>
       <table>
@@ -209,8 +217,11 @@
           <td><code>{pay_req.metadata}</code></td>
         </tr>
       </table>
+      {/if}
 
-      {:else} {#if pay}
+      <!---->
+
+      {#if pay}
       <h4>Values received from wallet:</h4>
       <table>
         <tr>
@@ -222,8 +233,7 @@
           <td><code>{pay.fromnodes}</code></td>
         </tr>
       </table>
-
-      {/if} {#if pay_result}
+      {#if pay_result}
       <h4>Final values sent to wallet:</h4>
       <table>
         <tr>
@@ -234,12 +244,7 @@
           <th>successAction</th>
           <td><code>{JSON.stringify(pay_result.successAction)}</code></td>
         </tr>
-        <tr>
-          <th>routes</th>
-          <td><code>{pay_result.routes}</code></td>
-        </tr>
       </table>
-
       {/if} {/if}
     </div>
     <div class:hidden="{lastEventKind && lastEventKind !== 'withdraw'}">
@@ -275,9 +280,16 @@
           <th>defaultDescription</th>
           <td><code>{withdraw_req.defaultDescription}</code></td>
         </tr>
+        <tr>
+          <th>balanceCheck</th>
+          <td><code>{withdraw_req.balanceCheck}</code></td>
+        </tr>
       </table>
+      {/if}
 
-      {:else if withdraw}
+      <!---->
+
+      {#if withdraw}
       <h4>Values received from wallet:</h4>
       <table>
         <tr>
@@ -288,10 +300,19 @@
           <th>k1</th>
           <td><code>{withdraw.k1}</code></td>
         </tr>
+        <tr>
+          <th>balanceNotify</th>
+          <td>
+            <code>{withdraw.balanceNotify}</code>
+            {#if withdraw.balanceNotify}
+            <button on:click="{triggerNotify}">trigger</button>
+            {/if}
+          </td>
+        </tr>
       </table>
-
       {/if}
     </div>
+
     <div class:hidden="{lastEventKind && lastEventKind !== 'login'}">
       <a href="lightning:{params.lnurllogin}"
         ><QR value="{params.lnurllogin}" color="#000"
@@ -321,6 +342,7 @@
         ><QR value="{params.lnurlchannel}" color="#000"
       /></a>
       <code>lnurl-channel</code>
+
       {#if channel_req}
       <h4>Params sent to wallet:</h4>
       <table>
@@ -341,8 +363,11 @@
           <td><code>{channel_req.uri}</code></td>
         </tr>
       </table>
+      {/if}
 
-      {:else if channel}
+      <!---->
+
+      {#if channel}
       <h4>Values received from wallet:</h4>
       <table>
         <tr>
@@ -363,7 +388,7 @@
     </div>
     <div id="preferences">
       <form on:submit="{setPreferences}">
-        <label>fail? <input type="checkbox" bind:checked="{fail}"/></label>
+        <label>fail? <input type="checkbox" bind:checked="{fail}" /></label>
         <label
           >disposable? <input type="checkbox" bind:checked="{disposable}"
         /></label>
@@ -372,9 +397,11 @@
         /></label>
         <label
           >currency:
-          <select bind:value="{currency}"
-            >{#each currencies as c}<option>{c}</option>{/each}</select
-          ></label
+          <select bind:value="{currency}">
+            {#each currencies as c}
+            <option>{c}</option>
+            {/each}
+          </select></label
         >
         <button>set</button>
       </form>

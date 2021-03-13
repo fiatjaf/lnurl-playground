@@ -31,6 +31,13 @@ func setupHandlers() {
 		w.WriteHeader(200)
 	})
 
+	http.HandleFunc("/trigger-notify", func(w http.ResponseWriter, r *http.Request) {
+		notifyURL := r.FormValue("notifyURL")
+		client := http.Client{Timeout: 3 * time.Second}
+		go client.Post(notifyURL, "", nil)
+		w.WriteHeader(200)
+	})
+
 	http.HandleFunc("/session", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 		es, ok := userStreams[session]
@@ -65,7 +72,7 @@ func setupHandlers() {
 		}
 
 		go func() {
-			time.Sleep(2 * time.Second)
+			time.Sleep(400 * time.Millisecond)
 			lnurllogin, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-login?tag=login&k1=%s", s.ServiceURL, session))
 			lnurlwithdraw, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-withdraw?session=%s", s.ServiceURL, session))
 			lnurlpay, _ := lnurl.LNURLEncode(fmt.Sprintf("%s/lnurl-pay?session=%s", s.ServiceURL, session))
@@ -123,12 +130,14 @@ func setupHandlers() {
 
 		min, max := generateMinMax()
 		resp, _ := json.Marshal(lnurl.LNURLWithdrawResponse{
-			Callback:           fmt.Sprintf("%s/lnurl-withdraw/callback/%s", s.ServiceURL, session),
+			Tag: "withdrawRequest",
+			Callback: fmt.Sprintf(
+				"%s/lnurl-withdraw/callback/%s", s.ServiceURL, session),
 			K1:                 lnurl.RandomK1(),
 			MinWithdrawable:    min,
 			MaxWithdrawable:    max,
 			DefaultDescription: "sample withdraw",
-			Tag:                "withdrawRequest",
+			BalanceCheck:       fmt.Sprintf("%s/lnurl-withdraw?session=%s", s.ServiceURL, session),
 		})
 
 		if es, ok := userStreams[session]; ok {
@@ -149,10 +158,12 @@ func setupHandlers() {
 
 		k1 := r.URL.Query().Get("k1")
 		pr := r.URL.Query().Get("pr")
+		balanceNotify := r.URL.Query().Get("balanceNotify")
+
 		json.NewEncoder(w).Encode(lnurl.OkResponse())
 
 		if es, ok := userStreams[session]; ok {
-			es.SendEventMessage(`{"pr": "`+pr+`","k1":"`+k1+`"}`, "withdraw", "")
+			es.SendEventMessage(`{"pr": "`+pr+`","k1":"`+k1+`","balanceNotify": "`+balanceNotify+`"}`, "withdraw", "")
 		}
 	})
 
@@ -243,8 +254,8 @@ func setupHandlers() {
 			return
 		}
 
-		currency := "bc"
-		disposable := lnurl.TRUE
+		var currency = "bc"
+		var disposable = lnurl.TRUE
 		if p, ok := userParams[session]; ok {
 			if p.Fail {
 				json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))

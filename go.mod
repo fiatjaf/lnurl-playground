@@ -16,3 +16,5 @@ require (
 	github.com/tidwall/gjson v1.6.0
 	gopkg.in/antage/eventsource.v1 v1.0.0-20150318155416-803f4c5af225
 )
+
+replace github.com/fiatjaf/go-lnurl => /home/fiatjaf/comp/go-lnurl
