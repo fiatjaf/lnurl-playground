@@ -8,6 +8,7 @@ import (
 	"github.com/imroc/req"
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
+	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 	"gopkg.in/antage/eventsource.v1"
 )
@@ -41,7 +42,10 @@ func main() {
 	// routes
 	setupHandlers()
 
+	// cors
+	handler := cors.Default().Handler(http.DefaultServeMux)
+
 	// start http server
 	log.Print("listening at 0.0.0.0:" + s.Port)
-	http.ListenAndServe("0.0.0.0:"+s.Port, nil)
+	http.ListenAndServe("0.0.0.0:"+s.Port, handler)
 }
