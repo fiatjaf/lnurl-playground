@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/fiatjaf/go-lnurl"
 	"gopkg.in/antage/eventsource.v1"
 )
@@ -218,7 +218,7 @@ func setupHandlers() {
 
 		min, max := generateMinMax()
 
-		var metadata string
+		var metadata lnurl.Metadata
 		if p, ok := userParams[session]; ok && p.MetadataSize > 0 {
 			metadata = generateMetadata(p.MetadataSize)
 		} else {
@@ -227,11 +227,11 @@ func setupHandlers() {
 		userMetadata[session] = metadata
 
 		resp, _ := json.Marshal(lnurl.LNURLPayResponse1{
-			Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
-			MinSendable:     min,
-			MaxSendable:     max,
-			EncodedMetadata: metadata,
-			Tag:             "payRequest",
+			Callback:    fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
+			MinSendable: min,
+			MaxSendable: max,
+			Metadata:    metadata,
+			Tag:         "payRequest",
 		})
 
 		if es, ok := userStreams[session]; ok {
@@ -246,7 +246,7 @@ func setupHandlers() {
 		session := parts[len(parts)-1]
 
 		amount := r.URL.Query().Get("amount")
-		fromnodes := r.URL.Query().Get("fromnodes")
+		payerid := r.URL.Query().Get("payerid")
 
 		msat, err := strconv.ParseInt(amount, 10, 64)
 		if err != nil {
@@ -283,12 +283,37 @@ func setupHandlers() {
 		})
 
 		if es, ok := userStreams[session]; ok {
-			es.SendEventMessage(`{"fromnodes": "`+fromnodes+`","amount":"`+amount+`"}`, "pay", "")
+			j, _ := json.Marshal(struct {
+				PayerID string `json:"payerid"`
+				Amount  string `json:"amount"`
+			}{payerid, amount})
+
+			es.SendEventMessage(string(j), "pay", "")
 			es.SendEventMessage(string(resp), "pay_result", "")
 		}
 
 		w.Write(resp)
 	})
 
-	http.Handle("/", http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "static"}))
+	// serve static client
+	if staticFS, err := fs.Sub(static, "static"); err != nil {
+		log.Fatal().Err(err).Msg("failed to load static files subdir")
+		return
+	} else {
+		spaFS := SpaFS{staticFS}
+		httpFS := http.FS(spaFS)
+		http.Handle("/", http.FileServer(httpFS))
+	}
+}
+
+type SpaFS struct {
+	base fs.FS
+}
+
+func (s SpaFS) Open(name string) (fs.File, error) {
+	if file, err := s.base.Open(name); err == nil {
+		return file, nil
+	} else {
+		return s.base.Open("index.html")
+	}
 }

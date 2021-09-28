@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"math/rand"
 	"time"
 
@@ -34,9 +33,9 @@ func randomLetter() string {
 
 var privkey, _ = btcec.NewPrivateKey(btcec.S256())
 
-func makeInvoice(msat int64, currency string, metadata string) (string, []byte) {
+func makeInvoice(msat int64, currency string, metadata lnurl.Metadata) (string, []byte) {
 	preimage, _ := hex.DecodeString(lnurl.RandomK1())
-	h := sha256.Sum256([]byte(metadata))
+	h := metadata.Hash()
 
 	var bolt11 string
 	var err error
@@ -118,19 +117,24 @@ func generateMinMax() (min, max int64) {
 	return
 }
 
-func generateMetadata(size int) string {
-	plain := ""
+func generateMetadata(size int) lnurl.Metadata {
+	m := lnurl.Metadata{}
+
+	m.Image.DataURI = "data:image/png;base64," + image
+
 	for i := 0; i < size; i++ {
-		plain += randomLetter()
+		m.Description += randomLetter()
+		m.LongDescription += randomLetter() + randomLetter()
 	}
 
-	metadata := [][]string{
-		[]string{"text/plain", plain},
-		[]string{"image/png;base64", image},
-	}
+	m.PayerIDs.LightningAddress = true
+	m.PayerIDs.Email = true
+	m.PayerIDs.KeyAuth.Allowed = true
+	m.PayerIDs.KeyAuth.K1 = lnurl.RandomK1()
+	m.PayerIDs.FreeName = true
+	m.PayerIDs.PubKey = true
 
-	j, _ := json.Marshal(metadata)
-	return string(j)
+	return m
 }
 
 func randomSuccessAction(preimage []byte) *lnurl.SuccessAction {
@@ -140,7 +144,7 @@ func randomSuccessAction(preimage []byte) *lnurl.SuccessAction {
 	case 1:
 		return lnurl.Action(
 			"You've paid!, now visit this URL: ",
-			"https://lnurl.bigsun.xyz/")
+			"https://fiatjaf.com/")
 	case 2:
 		a, _ := lnurl.AESAction("You've paid, here's your code: ", preimage, "1234")
 		return a

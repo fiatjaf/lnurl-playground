@@ -6,3 +6,4 @@ node_modules
 lnurl-playground
 bindata.go
 static/codec
+yarn.*

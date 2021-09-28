@@ -1,5 +1,3 @@
-<!-- @format -->
-
 <script>
   import bech32 from 'bech32'
 
@@ -35,6 +33,17 @@
   }
 </script>
 
+<div>
+  <h1>lnurl encoder/decoder</h1>
+  <form on:submit={parse}>
+    <textarea bind:value={input} />
+    <button>
+      {#if input.length == 0}Parse{:else if islnurl(input)}Decode{:else}Encode{/if}
+    </button>
+  </form>
+  <textarea readonly bind:value={output} />
+</div>
+
 <style>
   div {
     display: flex;
@@ -60,15 +69,3 @@
     padding: 10px;
   }
 </style>
-
-<div>
-  <h1>lnurl encoder/decoder</h1>
-  <form on:submit="{parse}">
-    <textarea bind:value="{input}"></textarea>
-    <button>
-      {#if input.length == 0}Parse{:else if
-      islnurl(input)}Decode{:else}Encode{/if}
-    </button>
-  </form>
-  <textarea readonly bind:value="{output}"></textarea>
-</div>

@@ -2,9 +2,12 @@ package main
 
 import (
 	"crypto/tls"
+	"embed"
+	_ "embed"
 	"net/http"
 	"os"
 
+	"github.com/fiatjaf/go-lnurl"
 	"github.com/imroc/req"
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
@@ -28,7 +31,10 @@ var log = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stderr})
 var userStreams = make(map[string]eventsource.EventSource)
 var userKeys = make(map[string]string)
 var userParams = make(map[string]Preferences)
-var userMetadata = make(map[string]string)
+var userMetadata = make(map[string]lnurl.Metadata)
+
+//go:embed static
+var static embed.FS
 
 func main() {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
