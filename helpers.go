@@ -33,9 +33,20 @@ func randomLetter() string {
 
 var privkey, _ = btcec.NewPrivateKey(btcec.S256())
 
-func makeInvoice(msat int64, currency string, metadata lnurl.Metadata) (string, []byte) {
+func makeInvoice(
+	msat int64,
+	currency string,
+	metadata lnurl.Metadata,
+	payerdata string,
+) (string, []byte) {
 	preimage, _ := hex.DecodeString(lnurl.RandomK1())
-	h := metadata.Hash()
+
+	var h [32]byte
+	if payerdata == "" {
+		h = metadata.Hash()
+	} else {
+		h = metadata.HashWithPayerData(payerdata)
+	}
 
 	var bolt11 string
 	var err error
@@ -126,13 +137,6 @@ func generateMetadata(size int) lnurl.Metadata {
 		m.Description += randomLetter()
 		m.LongDescription += randomLetter() + randomLetter()
 	}
-
-	m.PayerIDs.LightningAddress = true
-	m.PayerIDs.Email = true
-	m.PayerIDs.KeyAuth.Allowed = true
-	m.PayerIDs.KeyAuth.K1 = lnurl.RandomK1()
-	m.PayerIDs.FreeName = true
-	m.PayerIDs.PubKey = true
 
 	return m
 }

@@ -100,6 +100,22 @@
       headers: {'Content-Type': 'application/x-www-form-urlencoded'}
     })
   }
+
+  function tryPrettyJSON(jsonstr) {
+    var json
+
+    if (typeof jsonstr === 'object') {
+      json = jsonstr
+    } else {
+      try {
+        json = JSON.parse(jsonstr)
+      } catch (_) {
+        return `invalid JSON: ${jsonstr}`
+      }
+    }
+
+    return JSON.stringify(json, null, 2)
+  }
 </script>
 
 <div id="main">
@@ -138,7 +154,7 @@
               <th>metadata</th>
               <td>
                 <pre>
-              <code>{JSON.stringify(JSON.parse(pay_req.metadata), null, 2)}</code>
+              <code>{tryPrettyJSON(pay_req.metadata)}</code>
             </pre>
               </td>
             </tr>
@@ -154,13 +170,22 @@
               <th>amount</th>
               <td><code>{pay.amount}</code></td>
             </tr>
-            <tr>
-              <th>payerids</th>
-              <td
-                ><code>{JSON.stringify(JSON.parse(pay.payerid), null, 2)}</code
-                ></td
-              >
-            </tr>
+            {#if pay.comment}
+              <tr>
+                <th>comment</th>
+                <td><code>{pay.comment}</code></td>
+              </tr>
+            {/if}
+            {#if pay.payerdata}
+              <tr>
+                <th>payerdata</th>
+                <td
+                  ><code
+                    >{tryPrettyJSON(pay.payerdata)}</code
+                  ></td
+                >
+              </tr>
+            {/if}
           </table>
           {#if pay_result}
             <h4>Final values sent to wallet:</h4>

@@ -226,12 +226,20 @@ func setupHandlers() {
 		}
 		userMetadata[session] = metadata
 
-		resp, _ := json.Marshal(lnurl.LNURLPayResponse1{
-			Callback:    fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
-			MinSendable: min,
-			MaxSendable: max,
-			Metadata:    metadata,
-			Tag:         "payRequest",
+		resp, _ := json.Marshal(lnurl.LNURLPayParams{
+			Callback:       fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
+			MinSendable:    min,
+			MaxSendable:    max,
+			Metadata:       metadata,
+			Tag:            "payRequest",
+			CommentAllowed: 8,
+			PayerData: lnurl.PayerDataSpec{
+				LightningAddress: &lnurl.PayerDataItemSpec{},
+				Email:            &lnurl.PayerDataItemSpec{},
+				FreeName:         &lnurl.PayerDataItemSpec{},
+				PubKey:           &lnurl.PayerDataItemSpec{},
+				KeyAuth:          &lnurl.PayerDataKeyAuthSpec{K1: lnurl.RandomK1()},
+			},
 		})
 
 		if es, ok := userStreams[session]; ok {
@@ -246,7 +254,8 @@ func setupHandlers() {
 		session := parts[len(parts)-1]
 
 		amount := r.URL.Query().Get("amount")
-		payerid := r.URL.Query().Get("payerid")
+		comment := r.URL.Query().Get("comment")
+		payerdata := r.URL.Query().Get("payerdata")
 
 		msat, err := strconv.ParseInt(amount, 10, 64)
 		if err != nil {
@@ -273,20 +282,21 @@ func setupHandlers() {
 
 		metadata, _ := userMetadata[session]
 		delete(userMetadata, session)
-		bolt11, preimage := makeInvoice(msat, currency, metadata)
+		bolt11, preimage := makeInvoice(msat, currency, metadata, payerdata)
 
-		resp, _ := json.Marshal(lnurl.LNURLPayResponse2{
+		resp, _ := json.Marshal(lnurl.LNURLPayValues{
 			PR:            bolt11,
 			SuccessAction: randomSuccessAction(preimage),
-			Routes:        make([][]lnurl.RouteInfo, 0),
+			Routes:        []struct{}{},
 			Disposable:    disposable,
 		})
 
 		if es, ok := userStreams[session]; ok {
 			j, _ := json.Marshal(struct {
-				PayerID string `json:"payerid"`
-				Amount  string `json:"amount"`
-			}{payerid, amount})
+				Amount    string `json:"amount"`
+				Comment   string `json:"comment,omitempty"`
+				PayerData string `json:"payerdata,omitempty"`
+			}{amount, comment, payerdata})
 
 			es.SendEventMessage(string(j), "pay", "")
 			es.SendEventMessage(string(resp), "pay_result", "")
