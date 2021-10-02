@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -141,18 +142,84 @@ func generateMetadata(size int) lnurl.Metadata {
 	return m
 }
 
-func randomSuccessAction(preimage []byte) *lnurl.SuccessAction {
-	switch rand.Intn(3) {
+func randomSuccessAction(
+	preimage []byte,
+	comment string,
+	payer lnurl.PayerDataValues,
+) *lnurl.SuccessAction {
+	switch rand.Intn(2) {
 	case 0:
-		return nil
+		var message string
+
+		switch {
+		case payer.FreeName != "":
+			message = fmt.Sprintf("Obrigado, %s! ", payer.FreeName)
+		case payer.LightningAddress != "":
+			message = fmt.Sprintf("Děkuji, %s! ", payer.LightningAddress)
+		case payer.PubKey != "":
+			message = fmt.Sprintf("Gracias, %s! ", payer.PubKey)
+		case payer.KeyAuth != nil:
+			message = fmt.Sprintf("Grazie, %s! ", payer.KeyAuth.Key)
+		default:
+			message = "Thank you! "
+		}
+		if comment != "" {
+			message += fmt.Sprintf("You said: '%s'", comment)
+		}
+
+		return lnurl.Action(message, "")
 	case 1:
-		return lnurl.Action(
-			"You've paid!, now visit this URL: ",
-			"https://fiatjaf.com/")
+		var message string
+
+		switch {
+		case payer.FreeName != "":
+			message = fmt.Sprintf("Obrigado, %s! ", payer.FreeName)
+		case payer.LightningAddress != "":
+			message = fmt.Sprintf("Děkuji, %s! ", payer.LightningAddress)
+		case payer.PubKey != "":
+			message = fmt.Sprintf("Gracias, %s! ", payer.PubKey)
+		case payer.KeyAuth != nil:
+			message = fmt.Sprintf("Grazie, %s! ", payer.KeyAuth.Key)
+		default:
+			message = "Thank you! "
+		}
+		if comment != "" {
+			message += fmt.Sprintf("You said: '%s'", comment)
+		}
+
+		message += "Here is your URL:"
+
+		return lnurl.Action(message, "https://fiatjaf.com/")
 	case 2:
-		a, _ := lnurl.AESAction("You've paid, here's your code: ", preimage, "1234")
+		var name string
+
+		switch {
+		case payer.FreeName != "":
+			name = payer.FreeName
+		case payer.LightningAddress != "":
+			name = payer.LightningAddress
+		case payer.PubKey != "":
+			name = payer.PubKey
+		case payer.KeyAuth != nil:
+			name = payer.KeyAuth.Key
+		default:
+			name = "Anonymous Donor"
+		}
+
+		var message string
+		var secret string
+
+		if comment == "" {
+			message = "Your secret name is: "
+			secret = name
+		} else {
+			message = fmt.Sprintf("Hello %s, your secret comment was: ", name)
+			secret = comment
+		}
+
+		a, _ := lnurl.AESAction(message, preimage, secret)
 		return a
-	default: // case 4
-		return lnurl.Action("Thanks!", "")
 	}
+
+	return nil
 }

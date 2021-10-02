@@ -284,9 +284,12 @@ func setupHandlers() {
 		delete(userMetadata, session)
 		bolt11, preimage := makeInvoice(msat, currency, metadata, payerdata)
 
+		var payerData lnurl.PayerDataValues
+		json.Unmarshal([]byte(payerdata), &payerData)
+
 		resp, _ := json.Marshal(lnurl.LNURLPayValues{
 			PR:            bolt11,
-			SuccessAction: randomSuccessAction(preimage),
+			SuccessAction: randomSuccessAction(preimage, comment, payerData),
 			Routes:        []struct{}{},
 			Disposable:    disposable,
 		})
