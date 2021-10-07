@@ -10,8 +10,6 @@
     null: 'transparent'
   }
 
-  const currencies = ['bc', 'bcrt', 'sb', 'tb']
-
   const hex = '0123456789abcdef'
   var session = ''
   for (let i = 0; i < 64; ++i) {
@@ -30,8 +28,6 @@
   var channel = null
 
   // preferences
-  var currency = 'bc'
-  var fail = false
   var disposable = true
   var metadataSize = 23
 
@@ -87,7 +83,7 @@
     e.preventDefault()
     fetch(`/set-preferences?session=${session}`, {
       method: 'post',
-      body: `metadata-size=${metadataSize}&fail=${fail}&disposable=${disposable}&currency=${currency}`,
+      body: `disposable=${disposable}`,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'}
     })
   }
@@ -179,11 +175,7 @@
             {#if pay.payerdata}
               <tr>
                 <th>payerdata</th>
-                <td
-                  ><code
-                    >{tryPrettyJSON(pay.payerdata)}</code
-                  ></td
-                >
+                <td><code>{tryPrettyJSON(pay.payerdata)}</code></td>
               </tr>
             {/if}
           </table>
@@ -341,26 +333,11 @@
       </div>
       <div id="preferences">
         <form on:submit={setPreferences}>
-          <label>fail? <input type="checkbox" bind:checked={fail} /></label>
           <label
             >disposable? <input
               type="checkbox"
               bind:checked={disposable}
             /></label
-          >
-          <label
-            >metadata size: <input
-              type="number"
-              bind:value={metadataSize}
-            /></label
-          >
-          <label
-            >currency:
-            <select bind:value={currency}>
-              {#each currencies as c}
-                <option>{c}</option>
-              {/each}
-            </select></label
           >
           <button>set</button>
         </form>

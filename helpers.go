@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
@@ -12,7 +11,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/fiatjaf/go-lnurl"
 	lightning "github.com/fiatjaf/lightningd-gjson-rpc"
-	"github.com/imroc/req"
 	"github.com/lightningnetwork/lnd/lnwire"
 	"github.com/lightningnetwork/lnd/zpay32"
 	"github.com/lucsky/cuid"
@@ -20,10 +18,7 @@ import (
 )
 
 type Preferences struct {
-	Fail         bool
-	Disposable   bool
-	MetadataSize int
-	Currency     string
+	Disposable bool
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz  ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -34,70 +29,77 @@ func randomLetter() string {
 
 var privkey, _ = btcec.NewPrivateKey(btcec.S256())
 
+func makeLNURLPayParams(session string) lnurl.LNURLPayParams {
+	metadata := lnurl.Metadata{}
+	metadata.Image.DataURI = "data:image/png;base64," + image
+	for i := 0; i < rand.Intn(50); i++ {
+		metadata.Description += randomLetter()
+		metadata.LongDescription += randomLetter() + randomLetter()
+	}
+
+	min, max := generateMinMax()
+
+	return lnurl.LNURLPayParams{
+		Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
+		MinSendable:     min,
+		MaxSendable:     max,
+		Metadata:        metadata,
+		EncodedMetadata: metadata.Encode(),
+		Tag:             "payRequest",
+		CommentAllowed:  8,
+		PayerData: lnurl.PayerDataSpec{
+			LightningAddress: &lnurl.PayerDataItemSpec{},
+			Email:            &lnurl.PayerDataItemSpec{},
+			FreeName:         &lnurl.PayerDataItemSpec{},
+			PubKey:           &lnurl.PayerDataItemSpec{},
+			KeyAuth:          &lnurl.PayerDataKeyAuthSpec{K1: lnurl.RandomK1()},
+		},
+	}
+}
+
 func makeInvoice(
 	msat int64,
-	currency string,
-	metadata lnurl.Metadata,
+	params lnurl.LNURLPayParams,
 	payerdata string,
 ) (string, []byte) {
 	preimage, _ := hex.DecodeString(lnurl.RandomK1())
 
 	var h [32]byte
 	if payerdata == "" {
-		h = metadata.Hash()
+		h = params.HashMetadata()
 	} else {
-		h = metadata.HashWithPayerData(payerdata)
+		h = params.HashWithPayerData(payerdata)
 	}
 
 	var bolt11 string
 	var err error
 
-	switch currency {
-	case "bc":
-		spark := &lightning.Client{
-			SparkURL:    s.SparkoURL,
-			SparkToken:  s.SparkoToken,
-			CallTimeout: time.Second * 3,
-		}
-		var inv gjson.Result
-		inv, err = spark.CallNamed("invoicewithdescriptionhash",
-			"msatoshi", msat,
-			"label", "lnurl.bigsun.xyz/"+cuid.Slug(),
-			"description_hash", hex.EncodeToString(h[:]),
-			"preimage", hex.EncodeToString(preimage),
-		)
-		bolt11 = inv.Get("bolt11").String()
-	case "tb":
-		r, werr := req.Post(s.LndTestnetURL+"/v1/invoices", req.Header{
-			"Grpc-Metadata-macaroon": s.LndTestnetMacaroon,
-		}, req.BodyJSON(struct {
-			ValueMsat       int64  `json:"value_msat"`
-			DescriptionHash string `json:"description_hash"`
-			RPreimage       string `json:"r_preimage"`
-		}{
-			msat,
-			base64.StdEncoding.EncodeToString(h[:]),
-			base64.StdEncoding.EncodeToString(preimage),
-		}))
-		if werr != nil {
-			err = werr
-			break
-		}
-		bolt11 = gjson.Parse(r.String()).Get("payment_request").String()
+	spark := &lightning.Client{
+		SparkURL:    s.SparkoURL,
+		SparkToken:  s.SparkoToken,
+		CallTimeout: time.Second * 3,
 	}
+	var inv gjson.Result
+	inv, err = spark.CallNamed("invoicewithdescriptionhash",
+		"msatoshi", msat,
+		"label", "lnurl.bigsun.xyz/"+cuid.Slug(),
+		"description_hash", hex.EncodeToString(h[:]),
+		"preimage", hex.EncodeToString(preimage),
+	)
+	bolt11 = inv.Get("bolt11").String()
 
 	if err != nil {
 		log.Warn().Err(err).Msg("couldn't generate real invoice, using a fake")
-		return makeFakeInvoice(msat, currency, h, preimage), preimage
+		return makeFakeInvoice(msat, h, preimage), preimage
 	}
 	return bolt11, preimage
 }
 
-func makeFakeInvoice(msat int64, currency string, h [32]byte, preimage []byte) string {
+func makeFakeInvoice(msat int64, h [32]byte, preimage []byte) string {
 	hash := sha256.Sum256(preimage)
 
 	invoice, _ := zpay32.NewInvoice(
-		&chaincfg.Params{Bech32HRPSegwit: currency},
+		&chaincfg.Params{Bech32HRPSegwit: "bc"},
 		hash,
 		time.Now(),
 		zpay32.Destination(privkey.PubKey()),
@@ -127,19 +129,6 @@ func generateMinMax() (min, max int64) {
 	}
 
 	return
-}
-
-func generateMetadata(size int) lnurl.Metadata {
-	m := lnurl.Metadata{}
-
-	m.Image.DataURI = "data:image/png;base64," + image
-
-	for i := 0; i < size; i++ {
-		m.Description += randomLetter()
-		m.LongDescription += randomLetter() + randomLetter()
-	}
-
-	return m
 }
 
 func randomSuccessAction(

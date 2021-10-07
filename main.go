@@ -31,7 +31,7 @@ var log = zerolog.New(os.Stderr).Output(zerolog.ConsoleWriter{Out: os.Stderr})
 var userStreams = make(map[string]eventsource.EventSource)
 var userKeys = make(map[string]string)
 var userParams = make(map[string]Preferences)
-var userMetadata = make(map[string]lnurl.Metadata)
+var userPayParams = make(map[string]lnurl.LNURLPayParams)
 
 //go:embed static
 var static embed.FS

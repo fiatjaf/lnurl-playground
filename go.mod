@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/btcsuite/btcd v0.20.1-beta.0.20200515232429-9f0179fd2c46
-	github.com/fiatjaf/go-lnurl v1.6.0
+	github.com/fiatjaf/go-lnurl v1.7.1
 	github.com/fiatjaf/lightningd-gjson-rpc v1.0.1
 	github.com/imroc/req v0.3.0
 	github.com/kelseyhightower/envconfig v1.4.0

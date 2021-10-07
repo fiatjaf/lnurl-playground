@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,10 +22,7 @@ func setupHandlers() {
 			mz = 23
 		}
 		userParams[session] = Preferences{
-			Fail:         r.FormValue("fail") != "false",
-			Disposable:   r.FormValue("disposable") == "true",
-			MetadataSize: mz,
-			Currency:     r.FormValue("currency"),
+			Disposable: r.FormValue("disposable") == "true",
 		}
 		w.WriteHeader(200)
 	})
@@ -123,11 +119,6 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-withdraw", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
-		if p, ok := userParams[session]; ok && p.Fail {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-			return
-		}
-
 		min, max := generateMinMax()
 		resp, _ := json.Marshal(lnurl.LNURLWithdrawResponse{
 			Tag: "withdrawRequest",
@@ -151,11 +142,6 @@ func setupHandlers() {
 		parts := strings.Split(r.URL.Path, "/")
 		session := parts[len(parts)-1]
 
-		if p, ok := userParams[session]; ok && p.Fail {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-			return
-		}
-
 		k1 := r.URL.Query().Get("k1")
 		pr := r.URL.Query().Get("pr")
 		balanceNotify := r.URL.Query().Get("balanceNotify")
@@ -169,11 +155,6 @@ func setupHandlers() {
 
 	http.HandleFunc("/lnurl-channel", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
-
-		if p, ok := userParams[session]; ok && p.Fail {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-			return
-		}
 
 		resp, _ := json.Marshal(lnurl.LNURLChannelResponse{
 			Callback: fmt.Sprintf("%s/lnurl-channel/callback/%s", s.ServiceURL, session),
@@ -193,11 +174,6 @@ func setupHandlers() {
 		parts := strings.Split(r.URL.Path, "/")
 		session := parts[len(parts)-1]
 
-		if p, ok := userParams[session]; ok && p.Fail {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-			return
-		}
-
 		k1 := r.URL.Query().Get("k1")
 		private := r.URL.Query().Get("private")
 		remoteid := r.URL.Query().Get("remoteid")
@@ -211,36 +187,9 @@ func setupHandlers() {
 	http.HandleFunc("/lnurl-pay", func(w http.ResponseWriter, r *http.Request) {
 		session := r.URL.Query().Get("session")
 
-		if p, ok := userParams[session]; ok && p.Fail && rand.Intn(10) < 3 {
-			json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-			return
-		}
-
-		min, max := generateMinMax()
-
-		var metadata lnurl.Metadata
-		if p, ok := userParams[session]; ok && p.MetadataSize > 0 {
-			metadata = generateMetadata(p.MetadataSize)
-		} else {
-			metadata = generateMetadata(23)
-		}
-		userMetadata[session] = metadata
-
-		resp, _ := json.Marshal(lnurl.LNURLPayParams{
-			Callback:       fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
-			MinSendable:    min,
-			MaxSendable:    max,
-			Metadata:       metadata,
-			Tag:            "payRequest",
-			CommentAllowed: 8,
-			PayerData: lnurl.PayerDataSpec{
-				LightningAddress: &lnurl.PayerDataItemSpec{},
-				Email:            &lnurl.PayerDataItemSpec{},
-				FreeName:         &lnurl.PayerDataItemSpec{},
-				PubKey:           &lnurl.PayerDataItemSpec{},
-				KeyAuth:          &lnurl.PayerDataKeyAuthSpec{K1: lnurl.RandomK1()},
-			},
-		})
+		params := makeLNURLPayParams(session)
+		userPayParams[session] = params
+		resp, _ := json.Marshal(params)
 
 		if es, ok := userStreams[session]; ok {
 			es.SendEventMessage(string(resp), "pay-req", "")
@@ -263,26 +212,16 @@ func setupHandlers() {
 			return
 		}
 
-		var currency = "bc"
+		params, _ := userPayParams[session]
+		delete(userPayParams, session)
+		bolt11, preimage := makeInvoice(msat, params, payerdata)
+
 		var disposable = lnurl.TRUE
 		if p, ok := userParams[session]; ok {
-			if p.Fail {
-				json.NewEncoder(w).Encode(lnurl.ErrorResponse("You asked for a FAILURE!"))
-				return
-			}
-
-			if p.Currency != "" {
-				currency = p.Currency
-			}
-
 			if p.Disposable == false {
 				disposable = lnurl.FALSE
 			}
 		}
-
-		metadata, _ := userMetadata[session]
-		delete(userMetadata, session)
-		bolt11, preimage := makeInvoice(msat, currency, metadata, payerdata)
 
 		var payerData lnurl.PayerDataValues
 		json.Unmarshal([]byte(payerdata), &payerData)
