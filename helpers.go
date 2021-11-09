@@ -39,6 +39,11 @@ func makeLNURLPayParams(session string) lnurl.LNURLPayParams {
 
 	min, max := generateMinMax()
 
+	var commentAllowed int
+	if rand.Intn(10) > 5 {
+		commentAllowed = rand.Intn(15)
+	}
+
 	return lnurl.LNURLPayParams{
 		Callback:        fmt.Sprintf("%s/lnurl-pay/callback/%s", s.ServiceURL, session),
 		MinSendable:     min,
@@ -46,7 +51,7 @@ func makeLNURLPayParams(session string) lnurl.LNURLPayParams {
 		Metadata:        metadata,
 		EncodedMetadata: metadata.Encode(),
 		Tag:             "payRequest",
-		CommentAllowed:  8,
+		CommentAllowed:  int64(commentAllowed),
 		PayerData: lnurl.PayerDataSpec{
 			LightningAddress: &lnurl.PayerDataItemSpec{},
 			Email:            &lnurl.PayerDataItemSpec{},
@@ -160,20 +165,20 @@ func randomSuccessAction(
 	case 1:
 		var message string
 
-		switch {
-		case payer.FreeName != "":
-			message = fmt.Sprintf("Obrigado, %s! ", payer.FreeName)
-		case payer.LightningAddress != "":
-			message = fmt.Sprintf("Děkuji, %s! ", payer.LightningAddress)
-		case payer.PubKey != "":
-			message = fmt.Sprintf("Gracias, %s! ", payer.PubKey)
-		case payer.KeyAuth != nil:
-			message = fmt.Sprintf("Grazie, %s! ", payer.KeyAuth.Key)
-		default:
-			message = "Thank you! "
+		if payer.PubKey != "" {
+			message += fmt.Sprintf("Gracias, %s! ", payer.PubKey[:5])
+		}
+		if payer.LightningAddress != "" {
+			message += fmt.Sprintf("Děkuji, %s! ", payer.LightningAddress)
+		}
+		if payer.KeyAuth != nil {
+			message += fmt.Sprintf("Grazie, %s! ", payer.KeyAuth.Key[:5])
+		}
+		if payer.FreeName != "" {
+			message += fmt.Sprintf("Obrigado, %s! ", payer.FreeName)
 		}
 		if comment != "" {
-			message += fmt.Sprintf("You said: '%s'", comment)
+			message += fmt.Sprintf("You said: '%s'. ", comment)
 		}
 
 		message += "Here is your URL:"
