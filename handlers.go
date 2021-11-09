@@ -129,6 +129,7 @@ func setupHandlers() {
 			MaxWithdrawable:    max,
 			DefaultDescription: "sample withdraw",
 			BalanceCheck:       fmt.Sprintf("%s/lnurl-withdraw?session=%s", s.ServiceURL, session),
+			PayLink:            fmt.Sprintf("%s/lnurl-pay", s.ServiceURL),
 		})
 
 		if es, ok := userStreams[session]; ok {
