@@ -231,6 +231,10 @@
               <th>balanceCheck</th>
               <td><code>{withdraw_req.balanceCheck}</code></td>
             </tr>
+            <tr>
+              <th>payLink</th>
+              <td><code>{withdraw_req.payLink}</code></td>
+            </tr>
           </table>
         {/if}
 
