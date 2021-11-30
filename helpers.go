@@ -141,7 +141,7 @@ func randomSuccessAction(
 	comment string,
 	payer lnurl.PayerDataValues,
 ) *lnurl.SuccessAction {
-	switch rand.Intn(2) {
+	switch rand.Intn(3) {
 	case 0:
 		var message string
 
